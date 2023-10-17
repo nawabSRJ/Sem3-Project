@@ -1,4 +1,5 @@
 from tkinter import *
+import logging 
 from tkinter import messagebox
 import mysql.connector
 mydb = mysql.connector.connect(host = 'localhost',
@@ -29,6 +30,9 @@ def show_welcome_frame(user):
     welcome_label = Label(welcome_frame, text=f'Welcome {user.title()}', fg='Black', bg='white',
                           font=('Microsoft YaHei UI Light', 25, 'bold'))
     welcome_label.place(x=20, y=7)
+    sidebar = Frame(root, height = 900 , width = 70, bg = 'black')
+    data_frame = Frame(root, width = 500 , height = 600 , bg = 'red')
+    data_frame.place(x = 300 , y = 21)
 
 
 def authenticate():
@@ -58,6 +62,8 @@ def authenticate():
 
     else:
         print("USER NOT FOUND")
+        # log.info("User Not Found")
+
     
 
 
