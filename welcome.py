@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import ttk
 from tkinter import simpledialog
 from tkinter import messagebox
+import matplotlib.pyplot as plt
 import mysql.connector
 mydb = mysql.connector.connect(host = 'localhost',
                                user = 'root',
@@ -14,6 +15,8 @@ root.geometry('980x540+300+200')
 root.configure(bg = '#fff')
 root.resizable(False,False)
 user = 'Srajan Saxena'
+
+currTable = 'match_1'
  # Create a new window or frame for the welcome message
 welcome_frame = Frame(root, width=800, height=240, bg='white')
 welcome_frame.place(x=260, y=20)
@@ -62,7 +65,9 @@ def open_new_window():
     tables = cur.fetchall()
 
     def use_table(table_name):
+        global currTable
         tname.config(text=f'Table Name: {table_name}')
+        currTable = table_name      # ! to store the current table name
         update_table_data(table_name)
         new_window.destroy()
 
@@ -122,6 +127,27 @@ def new_data_window():
     okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)  
 
 
+# * when plot data is pressed 
+def plot_data(table_name):
+    over_data = f'SELECT * FROM {table_name}'
+    cur.execute(over_data)
+    res = cur.fetchall()
+
+    overs = []
+    runs = []
+
+    for row in res:
+        overs.append(row[0])  # Assuming the first column is Overs
+        runs.append(row[1])   # Assuming the second column is Runs
+
+    # Plotting the data
+    plt.figure(figsize=(8, 6))
+    plt.plot(overs, runs, marker='o')
+    plt.title(f'Data Plot for {table_name}')
+    plt.xlabel('Overs')
+    plt.ylabel('Runs')
+    plt.grid(True)
+    plt.show()
 
 
 # * ---------- BUTTONS ------------
@@ -137,8 +163,8 @@ delete_data.grid(row = 60, column = 1, padx = 15, pady=20)
 update_data = Button(sidebar , width=20, pady=3, text='Update Data', bg='black', fg='white', border=2)
 update_data.grid(row = 70, column = 1, padx = 15, pady=20)
 
-show_data = Button(rightbar , width=20, pady=3, text='Plot Data', bg='black', fg='white', border=2)
-show_data.grid(row = 40, column = 9, padx = 15, pady=20)
+show_data = Button(rightbar, width=20, pady=3, text='Plot Data', bg='black', fg='white', border=2, command=lambda: plot_data(currTable))
+show_data.grid(row=40, column=9, padx=15, pady=20)
 
 # * --------------------- TABULAR DATA --------------------
 
@@ -160,6 +186,15 @@ for row in res:
 
 tree.column('Over', width=100)
 tree.column('Runs', width=100)
+
+
+# * Add a Label for Next Over Prediction
+prediction_frame = Frame(root, width=800, height=50, bg='white')
+prediction_frame.place(x=100, y=490)
+
+next_over_label = Label(prediction_frame, text="Next Over Prediction: {Next Over Runs}", fg='black', bg='white',
+                        font=('Microsoft YaHei UI Light', 12, 'bold'))
+next_over_label.pack()
 
 root.mainloop()
 
