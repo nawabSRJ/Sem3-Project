@@ -98,9 +98,39 @@ def new_data_window():
         entry.grid(row=i + 1, column=1, padx=5, pady=5)
         data_entries.append(entry)
 
+    # def okay_button_action():
+    # # Retrieve entered data from Entry widgets
+    #     entered_data = [int(entry.get()) for entry in data_entries]
+
+    #     # Ask for the new table name
+    #     new_table_name = simpledialog.askstring("Input", "Enter a new table name:")
+
+    #     # Create a new table in the database; AUTO-INCREMENTING the 'Overs' Column
+    #     create_table_query = f"CREATE TABLE {new_table_name} (Overs INT AUTO_INCREMENT PRIMARY KEY, Runs INT NOT NULL)"
+    #     cur.execute(create_table_query)
+
+    #     # Insert the entered data into the new table
+    #     insert_data_query = f"INSERT INTO {new_table_name} (Runs) VALUES (%s)"
+    #     cur.executemany(insert_data_query, [(run,) for run in entered_data])
+    #     mydb.commit()
+
+    #     # Updating the table name and the table in the main window
+    #     tname.config(text=f'Table Name: {new_table_name}')
+    #     update_table_data(new_table_name)
+
+    #     new_window.destroy()  # Close the Toplevel window
+
     def okay_button_action():
-    # Retrieve entered data from Entry widgets
-        entered_data = [int(entry.get()) for entry in data_entries]
+        # Retrieve entered data from Entry widgets
+        entered_data = []
+
+        for entry in data_entries:
+            try:
+                value = int(entry.get())
+                entered_data.append(value)
+            except ValueError:
+                messagebox.showerror("Error", "Please enter valid integers for runs.")
+                return
 
         # Ask for the new table name
         new_table_name = simpledialog.askstring("Input", "Enter a new table name:")
@@ -120,11 +150,10 @@ def new_data_window():
 
         new_window.destroy()  # Close the Toplevel window
 
-
+    okay_button = Button(new_window, text='Okay', command=okay_button_action)
+    okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)
 
     
-    okay_button = Button(new_window, text='Okay', command=okay_button_action)
-    okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)  
 
 
 # * when plot data is pressed 

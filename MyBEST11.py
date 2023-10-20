@@ -103,7 +103,7 @@ def show_welcome_frame(user):
 
         data_entries = []  # List to store Entry widgets
 
-        # Sample data, replace it with your actual data
+        # todo - Sample data, replace it with your actual data
         data = [(1, 10), (2, 15), (3, 8), (4, 20), (5, 12), (6, 18), (7, 25), (8, 16), (9, 22)]
 
         for i, (over, runs) in enumerate(data):
@@ -112,10 +112,18 @@ def show_welcome_frame(user):
             entry.insert(0, runs)
             entry.grid(row=i + 1, column=1, padx=5, pady=5)
             data_entries.append(entry)
-
+        
         def okay_button_action():
         # Retrieve entered data from Entry widgets
-            entered_data = [int(entry.get()) for entry in data_entries]
+            entered_data = []
+
+            for entry in data_entries:
+                try:
+                    value = int(entry.get())
+                    entered_data.append(value)
+                except ValueError:
+                    messagebox.showerror("Error", "Please enter valid integers for runs.")
+                    return
 
             # Ask for the new table name
             new_table_name = simpledialog.askstring("Input", "Enter a new table name:")
@@ -139,7 +147,7 @@ def show_welcome_frame(user):
 
         
         okay_button = Button(new_window, text='Okay', command=okay_button_action)
-        okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)  
+        okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)  # setting the okay button bellow the data list
 
 
     # * when plot data is pressed 
@@ -238,10 +246,12 @@ def authenticate():
             # Show the welcome frame with the user's name
             show_welcome_frame(result[0])
         else:
-            print("Incorrect Password")
+            # print("Incorrect Password")
+            messagebox.showerror("Alert","Incorrect Password")
 
     else:
-        print("USER NOT FOUND")
+        messagebox.showerror("Alert","USER NOT FOUND")
+        # print("USER NOT FOUND")
         # log.info("User Not Found")
 
     
