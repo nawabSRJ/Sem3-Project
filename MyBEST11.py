@@ -1,8 +1,12 @@
 from tkinter import *
 from tkinter import ttk
-import logging 
+import csv
+import os
 from tkinter import simpledialog
 from tkinter import messagebox
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression
 import matplotlib.pyplot as plt
 import mysql.connector
 mydb = mysql.connector.connect(host = 'localhost',
@@ -25,6 +29,31 @@ frame.place(x = 520 , y = 55)
 # frame.place(x = 520 , y = 55)
 heading = Label(frame, text = 'Sign In',fg='Black' , bg = 'white', font = ('Microsoft YaHei UI Light',25,'bold'))
 heading.place(x = 150, y = 7)
+
+def get_treeview_data(tree):
+    overs = []
+    runs = []
+
+    for row_id in tree.get_children():
+        row_data = tree.item(row_id)['values']
+        overs.append(row_data[0])
+        runs.append(row_data[1])
+    dat = list(zip(overs, runs))
+
+    
+    try:
+        with open('output.csv', 'x', newline='') as File:
+            writer = csv.writer(File)
+            writer.writerow(['overs', 'runs'])
+            writer.writerows(dat)
+    except FileExistsError:
+        # Handle the case when the file already exists
+        print("File 'output.csv' already exists. Skipping writing to the file.")
+    except Exception as e:
+        # Handle other exceptions
+        print(f"An error occurred: {e}")
+
+
 
 
 def show_welcome_frame(user):
@@ -142,10 +171,8 @@ def show_welcome_frame(user):
             update_table_data(new_table_name)
 
             new_window.destroy()  # Close the Toplevel window
-
-
-
-        
+            # * End of Function
+            
         okay_button = Button(new_window, text='Okay', command=okay_button_action)
         okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)  # setting the okay button bellow the data list
 
@@ -209,6 +236,38 @@ def show_welcome_frame(user):
 
     tree.column('Over', width=100)
     tree.column('Runs', width=100)
+    
+    # *--------------------------------------------------
+    def predict_next_over():
+        file_path = 'output.csv'
+        if os.path.exists(file_path):
+            data = pd.read_csv('output.csv')
+        else :
+            print('File exists error')
+                       
+           
+        # data = pd.read_csv('output.csv')
+        formula = LinearRegression()
+        x = data.overs.values.reshape(-1,1)
+        y = data.runs.values.reshape(-1,1)
+        # Fit the linear regression model
+
+        formula.fit(x, y)
+
+        # Predict the next over's runs
+        next_over = 10
+        next_over_runs = formula.predict([[next_over]])
+        print(int(next_over_runs))
+        # Update the label with the prediction
+        next_over_label.config(text=f'Next Over Prediction: {int(next_over_runs)} runs')
+
+    # ... Existing code ...
+
+    # Add a button to trigger prediction
+    button_predict = Button(root, text='Predict Next Over', command=predict_next_over)
+    button_predict.pack(pady=10)
+    # *--------------------------------------------------
+    
     
     # * Add a Label for Next Over Prediction
     prediction_frame = Frame(root, width=800, height=50, bg='white')
