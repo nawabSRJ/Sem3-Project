@@ -1,7 +1,7 @@
 import csv
 
 overs = [1, 2, 3, 4, 5,6,7,8,9]
-runs = [10, 2, 3, 4, 7,6,14,15,12]
+runs = [10, 15,8,20,12,18,25,16,22]
 
 # Zip the two lists together to create pairs of (over, run)
 data = list(zip(overs, runs))

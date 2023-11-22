@@ -40,7 +40,6 @@ class LoginPage():
             # Handle other exceptions
             print(f"An error occurred: {e}")
             
-            
     def show_welcome_frame(self,user):
         
         lf_bg = 'LightSkyBlue'  # Left Frame Background Color
@@ -89,6 +88,44 @@ class LoginPage():
 
             for row in res:
                 tree.insert('', 'end', values=row)
+                
+        def open_delete_window():
+            new_window = Toplevel(self.root)
+            new_window.title('Select Table to Delete')
+            new_window.geometry(f"{self.root.winfo_width()}x{self.root.winfo_height()}+{self.root.winfo_x()}+{self.root.winfo_y()}")
+
+            table_list_label = Label(new_window, text='Select a Table to Delete:', font=('Microsoft YaHei UI Light', 12, 'bold'))
+            table_list_label.pack(pady=10)
+
+            # Fetch table names that start with 'match'
+            cur.execute("SHOW TABLES LIKE 'match%'")
+            tables = cur.fetchall()
+
+            def delete_table(table_name):
+                # Ask for confirmation before deleting
+                permit = messagebox.askyesno("Confirmation", f"Do you want to delete the table '{table_name}'?")
+
+                if permit:
+                    # Construct the DROP TABLE query
+                    drop_table_query = f"DROP TABLE {table_name}"
+
+                    try:
+                        cur.execute(drop_table_query)
+                        mydb.commit()
+                        messagebox.showinfo("Success", f"Table '{table_name}' deleted successfully.")
+                        new_window.destroy()
+                        # Optionally, update the table data and display a default table
+                        update_table_data('default_table')  # Replace 'default_table' with the table you want to show
+                    except Exception as e:
+                        messagebox.showerror("Error", f"An error occurred: {e}")
+                else:
+                    print("User clicked No. Deletion canceled.")
+
+            for table in tables:
+                table_name = table[0]
+                delete_button = Button(new_window, text=f'Delete {table_name}', padx=10, pady=10, command=lambda tn=table_name: delete_table(tn))
+                delete_button.pack()
+                
         def open_new_window():
             new_window = Toplevel(self.root)
             new_window.title('Select Table')
@@ -112,7 +149,71 @@ class LoginPage():
                 table_name = table[0]
                 use_button = Button(new_window, text=f'{table_name}', padx = 10, pady = 10,command=lambda tn=table_name: use_table(tn))
                 use_button.pack()
+        def update_btn():
+            new_window = Toplevel(self.root)
+            new_window.title('Update Data')
+            new_window.geometry(f"{self.root.winfo_width()}x{self.root.winfo_height()}+{self.root.winfo_x()}+{self.root.winfo_y()}")
 
+            table_list_label = Label(new_window, text='Enter Data:', font=('Microsoft YaHei UI Light', 12, 'bold'))
+            table_list_label.grid(row=0, column=0, pady=10, columnspan=2)  # Use grid here
+
+            data_entries = []  # List to store Entry widgets
+            overs = []
+            runs = []
+
+            for row_id in tree.get_children():
+                row_data = tree.item(row_id)['values']
+                overs.append(row_data[0])
+                runs.append(row_data[1])
+            data = list(zip(overs, runs))
+            
+
+            for i, (over, runs) in enumerate(data):
+                Label(new_window, text=f'Over {over}:').grid(row=i + 1, column=0, padx=5, pady=5)
+                entry = Entry(new_window, width=10)
+                entry.insert(0, runs)
+                entry.grid(row=i + 1, column=1, padx=5, pady=5)
+                data_entries.append(entry)
+            
+            
+            def okay_action():
+                # Retrieve entered data from Entry widgets
+                entered_data = []
+
+                for entry in data_entries:
+                    try:
+                        value = int(entry.get())
+                        entered_data.append(value)
+                    except ValueError:
+                        messagebox.showerror("Error", "Please enter valid integers for runs.")
+                        return
+                permit = messagebox.askyesno("Confirmation", "Do you want to perform this operation?")
+    
+                if permit:
+                    # Construct the UPDATE query
+                    update_table_query = f"UPDATE {currTable} SET Runs = CASE "
+                    for over, run in zip(overs, entered_data):
+                        update_table_query += f"WHEN Overs = {over} THEN {run} "
+                    update_table_query += "END"
+                    
+                    try:
+                        cur.execute(update_table_query)
+                        mydb.commit()
+                        messagebox.showinfo("Success", "Data updated successfully.")
+                        new_window.destroy()
+                    except Exception as e:
+                        messagebox.showerror("Error", f"An error occurred: {e}")
+                else:
+                    print("User clicked No. Operation canceled.")
+                    
+                new_window.destroy()  # Close the Toplevel window
+                # * End of Function
+                
+                
+            okay_button = Button(new_window, text='Okay', command=okay_action)
+            okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)
+                
+                
         def new_data_window():
             new_window = Toplevel(self.root)
             new_window.title('Enter Data')
@@ -167,7 +268,6 @@ class LoginPage():
             okay_button = Button(new_window, text='Okay', command=okay_button_action)
             okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)  # setting the okay button bellow the data lis
 
-
         def plot_data(table_name):
             over_data = f'SELECT * FROM {table_name}'
             cur.execute(over_data)
@@ -189,47 +289,13 @@ class LoginPage():
             plt.grid(True)
             plt.show()
             
-         # * ---------- BUTTONS ------------
-        select_data = Button(left_frame, text='Select Data', font=btn_font, bg=btn_hlb_bg, width=17 , command=open_new_window ).grid(row=40, column=1, padx=15, pady=20)
-        add_data = Button(left_frame, text='Add Data', font=btn_font, bg=btn_hlb_bg, width=17 , command=new_data_window ).grid(row=50, column=1, padx=15, pady=20)
-        delete_data = Button(left_frame, text='Delete Data', font=btn_font, bg=btn_hlb_bg, width=17  ).grid(row = 60, column = 1, padx = 15, pady=20)
-        update_data = Button(left_frame, text='Update Data', font=btn_font, bg=btn_hlb_bg, width=17  ).grid(row = 70, column = 1, padx = 15, pady=20)
-        
-        predict_data = Button(left_frame, text='Predict Next', font=btn_font, bg=btn_hlb_bg, width=17,command=predict_next_over  ).grid(row = 80, column = 1, padx = 15, pady=20)
-        
-        show_data = Button(right_frame, width=20, pady=3, text='Plot Data', bg='black', fg='white', border=2, command=lambda: plot_data(currTable))
-        show_data.grid(row=40, column=9, padx=15, pady=20)
-
-        # * --------------------- TABULAR DATA --------------------
-
-        over_data = 'SELECT * FROM MATCH_1'
-        cur.execute(over_data)
-        res = cur.fetchall()
-
-        tree = ttk.Treeview(data_frame, columns=('Over', 'Runs'), show='headings', height=10)
-        tree.heading('Over', text='Over No.')
-        tree.heading('Runs', text='Runs Scored')
-        # tree.place(x = 300 , y = 120)
-        tree.pack(fill='both', expand=True)
-
-
-        for row in res:
-            tree.insert('', 'end', values=row)
-
-        # todo - Adjust Column Widths
-
-        tree.column('Over', width=100)
-        tree.column('Runs', width=100)
-        
         def predict_next_over():
             file_path = 'output.csv'
             if os.path.exists(file_path):
                 data = pd.read_csv('output.csv')
             else :
                 print('File exists error')
-                        
-            
-           
+                   
             formula = LinearRegression()
             x = data.overs.values.reshape(-1,1)
             y = data.runs.values.reshape(-1,1)
@@ -242,16 +308,47 @@ class LoginPage():
             next_over_runs = formula.predict([[next_over]])
             print(int(next_over_runs))
             # Update the label with the prediction
-            next_over_label.config(text=f'Next Over Prediction: {int(next_over_runs)} runs')
+            next_over_label.config(text=f'Next Over Prediction: {int(next_over_runs)} runs')  
+              
+        # * --------------------- TABULAR DATA --------------------
 
-         # * Add a Label for Next Over Prediction
-        prediction_frame = Frame(self.root, width=800, height=50, bg='white')
-        prediction_frame.place(x=100, y=490)
+        over_data = 'SELECT * FROM MATCH_1'
+        cur.execute(over_data)
+        res = cur.fetchall()
 
-        next_over_label = Label(prediction_frame, text="Next Over Prediction: {Next Over Runs}", fg='black', bg='white',
-                                font=('Microsoft YaHei UI Light', 12, 'bold'))
-        next_over_label.grid(row = 90 , column = 7, padx = 5 , pady = 5)
+        tree = ttk.Treeview(data_frame, columns=('Over', 'Runs'), show='headings', height=10)
+        tree.heading('Over', text='Over No.')
+        tree.heading('Runs', text='Runs Scored')
+        # tree.place(x = 300 , y = 120)
+        tree.pack(fill='both', expand=True)
+
+        for row in res:
+            tree.insert('', 'end', values=row)
+
+        # todo - Adjust Column Widths
+
+        tree.column('Over', width=100)
+        tree.column('Runs', width=100)
         
+        #  # * Add a Label for Next Over Prediction
+        # prediction_frame = Frame(self.root, width=800, height=50, bg='black')
+        # prediction_frame.place(x=100, y=400)
+
+        next_over_label = Label(self.root, text="Next Over Prediction: {Next Over Runs}", fg='white', bg='black',
+                                font=('Microsoft YaHei UI Light', 12, 'bold'))
+        next_over_label.grid(row = 50 , column = 8)
+        # next_over_label.pack(pady = 5)
+        
+        # * ---------- BUTTONS ------------
+        select_data = Button(left_frame, text='Select Data', font=btn_font, bg=btn_hlb_bg, width=17 , command=open_new_window ).grid(row=40, column=1, padx=15, pady=20)
+        add_data = Button(left_frame, text='Add Data', font=btn_font, bg=btn_hlb_bg, width=17 , command=new_data_window ).grid(row=50, column=1, padx=15, pady=20)
+        delete_data = Button(left_frame, text='Delete Data', font=btn_font, bg=btn_hlb_bg, width=17 , command = open_delete_window ).grid(row = 60, column = 1, padx = 15, pady=20)
+        update_data = Button(left_frame, text='Update Data', font=btn_font, bg=btn_hlb_bg, width=17 , command = update_btn ).grid(row = 70, column = 1, padx = 15, pady=20)
+        
+        predict_data = Button(left_frame, text='Predict Next', font=btn_font, bg=btn_hlb_bg, width=17,command = predict_next_over  ).grid(row = 80, column = 1, padx = 15, pady=20)
+        
+        show_data = Button(right_frame, width=20, pady=3, text='Plot Data', bg='black', fg='white', border=2, command=lambda: plot_data(currTable))
+        show_data.grid(row=40, column=9, padx=15, pady=20)
         
     def authenticate(self):
         name = self.user.get().lower()
@@ -270,11 +367,7 @@ class LoginPage():
             if lock == stored_password:
                 print(f"Password for user {result[0]} is Correct")
 
-
-
                 self.frame.destroy()
-                
-            
                 
                 self.show_welcome_frame(user = result[0])
             else:
@@ -364,5 +457,4 @@ class LoginPage():
         # todo - use pywhatkit for OTP generation 
         self.root.mainloop()
 
-      
 myob = LoginPage()

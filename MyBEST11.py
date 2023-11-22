@@ -14,6 +14,8 @@ mydb = mysql.connector.connect(host = 'localhost',
                                password = '123456',
                                database = 'MyApp')
 cur = mydb.cursor()
+class MinimumOversError(Exception):
+    pass
 root = Tk()
 root.title('Login')
 root.geometry('980x540+300+200')
@@ -122,6 +124,125 @@ def show_welcome_frame(user):
 
 
     # * ~~~~~~~~~~~ when add data is pressed :
+    
+    def add_data_window():
+        new_window = Toplevel(root)
+        new_window.title('Enter Data')
+        new_window.geometry(f"{root.winfo_width()}x{root.winfo_height()}+{root.winfo_x()}+{root.winfo_y()}")
+
+        table_list_label = Label(new_window, text='Enter Data:', font=('Microsoft YaHei UI Light', 12, 'bold'))
+        table_list_label.grid(row=0, column=0, pady=10, columnspan=2)  # Use grid here
+
+        data_entries = []  # List to store Entry widgets
+
+        # todo - Sample data, replace it with your actual data
+        data = [(1, 10), (2, 15), (3, 8), (4, 20), (5, 12), (6, 18), (7, 25), (8, 16), (9, 22)]
+
+        for i, (over, runs) in enumerate(data):
+            Label(new_window, text=f'Over {over}:').grid(row=i + 1, column=0, padx=5, pady=5)
+            entry = Entry(new_window, width=10)
+            entry.insert(0, runs)
+            entry.grid(row=i + 1, column=1, padx=5, pady=5)
+            data_entries.append(entry)
+
+        def okay_button_action():
+            # Retrieve entered data from Entry widgets
+            entered_data = []
+
+            for entry in data_entries:
+                try:
+                    value = int(entry.get())
+                    entered_data.append(value)
+                except ValueError:
+                    messagebox.showerror("Error", "Please enter valid integers for runs.")
+                    return
+
+            # Check if the number of overs is at least 5
+            if len(entered_data) < 5:
+                messagebox.showerror("Error", "Cannot input less than 5 overs. Please enter at least 5 overs.")
+                new_window.destroy()
+                raise MinimumOversError("Cannot input less than 5 overs. Please enter at least 5 overs.")
+
+            # Ask for the number of overs to fill
+            try:
+                num_overs_to_fill = simpledialog.askinteger("Input", "Enter the number of overs to fill:", minvalue=5)
+            except TclError:
+                num_overs_to_fill = None
+
+            # Check if the number of overs to fill is valid
+            if num_overs_to_fill is None or num_overs_to_fill < 5:
+                messagebox.showerror("Error", "Invalid number of overs to fill. Please enter a number greater than or equal to 5.")
+                new_window.destroy()
+                raise MinimumOversError("Invalid number of overs to fill. Please enter a number greater than or equal to 5.")
+
+            # Insert the entered data into the table
+            insert_data_query = f"INSERT INTO {currTable} (Runs) VALUES (%s)"
+            cur.executemany(insert_data_query, [(run,) for run in entered_data])
+            mydb.commit()
+
+            # Update the table in the main window
+            update_table_data(currTable)
+
+            new_window.destroy()  # Close the Toplevel window
+
+        okay_button = Button(new_window, text='Okay', command=okay_button_action)
+        okay_button.grid(row=len(data) + 1, column=0, columnspan=2, pady=10)  # setting the okay button bellow the data list
+
+
+    def update_data_window():
+        new_window = Toplevel(root)
+        new_window.title('Update Data')
+        new_window.geometry(f"{root.winfo_width()}x{root.winfo_height()}+{root.winfo_x()}+{root.winfo_y()}")
+
+        table_list_label = Label(new_window, text='Update Data:', font=('Microsoft YaHei UI Light', 12, 'bold'))
+        table_list_label.grid(row=0, column=0, pady=10, columnspan=2)  # Use grid here
+
+        data_entries = []  # List to store Entry widgets
+
+        # Get the current data from the database
+        over_data = f'SELECT * FROM {currTable}'
+        cur.execute(over_data)
+        res = cur.fetchall()
+
+        for i, row in enumerate(res):
+            over, runs = row
+            Label(new_window, text=f'Over {over}:').grid(row=i + 1, column=0, padx=5, pady=5)
+            entry = Entry(new_window, width=10)
+            entry.insert(0, runs)
+            entry.grid(row=i + 1, column=1, padx=5, pady=5)
+            data_entries.append(entry)
+
+        def okay_button_action():
+            # Retrieve entered data from Entry widgets
+            entered_data = []
+
+            for entry in data_entries:
+                try:
+                    value = int(entry.get())
+                    entered_data.append(value)
+                except ValueError:
+                    messagebox.showerror("Error", "Please enter valid integers for runs.")
+                    return
+
+            # Check if the number of overs is at least 5
+            if len(entered_data) < 5:
+                messagebox.showerror("Error", "Cannot update less than 5 overs. Please update at least 5 overs.")
+                new_window.destroy()
+                raise MinimumOversError("Cannot update less than 5 overs. Please update at least 5 overs.")
+
+            # Update the entered data in the table
+            update_data_query = f"UPDATE {currTable} SET Runs = %s WHERE Overs = %s"
+            cur.executemany(update_data_query, [(run, over + 1) for over, run in enumerate(entered_data)])
+            mydb.commit()
+
+            # Update the table in the main window
+            update_table_data(currTable)
+
+            new_window.destroy()  # Close the Toplevel window
+
+        okay_button = Button(new_window, text='Okay', command=okay_button_action)
+        okay_button.grid(row=len(data_entries) + 1, column=0, columnspan=2, pady=10)  # setting the okay button below the data list
+
     def new_data_window():
         new_window = Toplevel(root)
         new_window.title('Enter Data')
@@ -204,13 +325,13 @@ def show_welcome_frame(user):
     select_data = Button(sidebar, width=20, pady=3, text='Select Data', bg='black', fg='white', border=2, command=open_new_window)
     select_data.grid(row=40, column=1, padx=15, pady=20)
 
-    add_data = Button(sidebar, width=20, pady=3, text='Add Data', bg='black', fg='white', border=2, command=new_data_window)
+    add_data = Button(sidebar, width=20, pady=3, text='Add Data', bg='black', fg='white', border=2, command=add_data_window)
     add_data.grid(row=50, column=1, padx=15, pady=20)
 
     delete_data = Button(sidebar , width=20, pady=3, text='Delete Data', bg='black', fg='white', border=2)
     delete_data.grid(row = 60, column = 1, padx = 15, pady=20)
 
-    update_data = Button(sidebar , width=20, pady=3, text='Update Data', bg='black', fg='white', border=2)
+    update_data = Button(sidebar , width=20, pady=3, text='Update Data', bg='black', fg='white', border=2, command=update_data_window)
     update_data.grid(row = 70, column = 1, padx = 15, pady=20)
 
     show_data = Button(rightbar, width=20, pady=3, text='Plot Data', bg='black', fg='white', border=2, command=lambda: plot_data(currTable))
